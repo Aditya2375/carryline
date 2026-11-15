@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <meta
+      name="description"
+      content="A European Black-Scholes-Merton pricing worksheet with continuous dividend yield, explicit Greek units and assumption sweeps. Model values, not market quotes."
+    />
+    <title>carryline - price the assumptions</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="src/app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to pricing worksheet</a>
+    <header>
+      <div class="topline">
+        <a class="logo" href="#">carryline<span> / </span></a
+        ><span class="top-note">EUROPEAN OPTIONS<br />BLACK-SCHOLES-MERTON</span
+        ><span class="tag">MODEL VALUES · NOT QUOTES</span>
+      </div>
+      <div class="hero">
+        <div>
+          <p class="kicker">04 / THE PRICING WORKSHEET</p>
+          <h1>Price the<br />assumptions.</h1>
+        </div>
+        <div>
+          <p>
+            One contract, two rights.<br />What is the model value of the right
+            to buy or sell?
+          </p>
+          <p class="fine">
+            European exercise only. Constant volatility, interest rate and
+            continuous dividend yield. No live prices, implied-volatility fit or
+            trading connection.
+          </p>
+        </div>
+      </div>
+      <div class="quote-pair">
+        <article>
+          <div>
+            <span class="side">C / CALL</span>
+            <p>The right to buy at strike</p>
+          </div>
+          <div>
+            <strong id="call-price"></strong><small>per underlying unit</small>
+          </div>
+        </article>
+        <article>
+          <div>
+            <span class="side put">P / PUT</span>
+            <p>The right to sell at strike</p>
+          </div>
+          <div>
+            <strong id="put-price"></strong><small>per underlying unit</small>
+          </div>
+        </article>
+      </div>
+    </header>
+    <main id="main">
+      <section class="input-sheet" aria-labelledby="inputs-title">
+        <div class="section-head">
+          <div>
+            <p class="kicker">01 / CONTRACT ASSUMPTIONS</p>
+            <h2 id="inputs-title">
+              Change the inputs. Keep the model in view.
+            </h2>
+          </div>
+          <button id="reset" type="button">Reset worksheet ↺</button>
+        </div>
+        <form id="inputs" novalidate>
+          <div class="fields">
+            <label
+              >Underlying price S <span>currency units · 1-1,000</span
+              ><input
+                id="spot"
+                name="spot"
+                type="number"
+                min="1"
+                max="1000"
+                step="any"
+                value="100"
+                required
+                inputmode="decimal" /></label
+            ><label
+              >Strike price K <span>same units · 1-1,000</span
+              ><input
+                id="strike"
+                name="strike"
+                type="number"
+                min="1"
+                max="1000"
+                step="any"
+                value="100"
+                required
+                inputmode="decimal" /></label
+            ><label
+              >Time to expiry <span>calendar days · 7-730</span
+              ><input
+                id="days"
+                name="days"
+                type="number"
+                min="7"
+                max="730"
+                step="any"
+                value="90"
+                required
+                inputmode="decimal" /></label
+            ><label
+              >Volatility σ <span>% per year · 5-150</span
+              ><input
+                id="volatility"
+                name="volatility"
+                type="number"
+                min="5"
+                max="150"
+                step="any"
+                value="20"
+                required
+                inputmode="decimal" /></label
+            ><label
+              >Risk-free rate r <span>% continuously compounded · -5 to 20</span
+              ><input
+                id="rate"
+                name="rate"
+                type="number"
+                min="-5"
+                max="20"
+                step="any"
+                value="5"
+                required
+                inputmode="decimal" /></label
+            ><label
+              >Continuous yield q <span>% per year · 0-15</span
+              ><input
+                id="yield"
+                name="yield"
+                type="number"
+                min="0"
+                max="15"
+                step="any"
+                value="2"
+                required
+                inputmode="decimal"
+            /></label>
+          </div>
+          <div class="apply-row">
+            <button class="primary" type="submit">Reprice contract ↗</button>
+            <p id="status" role="status" aria-live="polite">
+              Illustrative defaults, not current market assumptions.
+            </p>
+          </div>
+        </form>
+        <p class="micro">
+          All values are for one option on one underlying unit, in an
+          unspecified currency. No contract multiplier or premium paid is
+          included. Inputs are assumptions, not estimated or recommended
+          settings.
+        </p>
+      </section>
+      <section class="worksheet">
+        <div class="section-head">
+          <div>
+            <p class="kicker">02 / LOCAL SENSITIVITIES</p>
+            <h2>Small changes, named units.</h2>
+          </div>
+          <span class="badge">OTHER INPUTS HELD FIXED</span>
+        </div>
+        <p id="table-hint" class="micro">
+          On narrow screens, scroll the table sideways to see both rights.
+        </p>
+        <p class="intro">
+          Greeks are local derivatives, not promised changes for a finite move.
+          Vega and rho below are <b>per +1 percentage point</b>, not per 1%
+          relative change. Theta is per calendar day elapsed.
+        </p>
+        <div
+          class="table-wrap"
+          tabindex="0"
+          role="region"
+          aria-label="Scrollable call and put sensitivities"
+          aria-describedby="table-hint"
+        >
+          <table class="greeks">
+            <thead>
+              <tr>
+                <th>Sensitivity</th>
+                <th>Unit of change</th>
+                <th>Call</th>
+                <th>Put</th>
+              </tr>
+            </thead>
+            <tbody id="greeks"></tbody>
+          </table>
+        </div>
+        <p class="micro">
+          Gamma and vega are equal for the call and put in this model. Theta can
+          be positive in some cases. Delta is a price sensitivity, not a
+          real-world exercise probability.
+        </p>
+      </section>
+      <section class="split">
+        <article class="worksheet chart-panel">
+          <div class="section-head">
+            <div>
+              <p class="kicker">03 / UNDERLYING-PRICE SWEEP</p>
+              <h2>Value now is not payoff.</h2>
+            </div>
+          </div>
+          <div class="chart-controls">
+            <label
+              >Right to inspect<select id="side">
+                <option value="call">Call / right to buy</option>
+                <option value="put">Put / right to sell</option>
+              </select></label
+            ><label
+              >Sweep point <output id="sweep-price" for="cursor"></output
+              ><input id="cursor" type="range" min="0" max="100" value="50"
+            /></label>
+          </div>
+          <div class="legend">
+            <span class="model">Model value now</span
+            ><span class="payoff">Payoff at expiry</span>
+          </div>
+          <svg
+            id="chart"
+            role="img"
+            aria-label="Option model value and expiry payoff across alternative underlying prices"
+          ></svg>
+          <div class="sweep-result">
+            <div><span>Model value</span><b id="sweep-value"></b></div>
+            <div><span>Expiry payoff</span><b id="sweep-payoff"></b></div>
+            <div><span>Spot delta</span><b id="sweep-delta"></b></div>
+          </div>
+          <p class="micro">
+            The sweep changes S only, over a clipped 0.5× to 1.5× range. Payoff
+            is max(S-K,0) for a call or max(K-S,0) for a put, with no premium
+            subtraction. It is not profit, and the two curves are not at the
+            same time. A model value need not exceed immediate payoff when rates
+            or yield make early exercise valuable; this model cannot exercise
+            early.
+          </p>
+        </article>
+        <article class="worksheet parity">
+          <p class="kicker">04 / AN ACCOUNTING IDENTITY</p>
+          <h2>
+            Two prices.<br />
+            One parity relation.
+          </h2>
+          <div class="equation">
+            C - P = S e<sup>-qT</sup> - K e<sup>-rT</sup>
+          </div>
+          <p>
+            The call minus the put equals the prepaid underlying minus the
+            present value of the strike. This is a model identity for the same
+            European strike and expiry.
+          </p>
+          <dl>
+            <div>
+              <dt>Call - put</dt>
+              <dd id="parity-left"></dd>
+            </div>
+            <div>
+              <dt>Prepaid underlying S e<sup>-qT</sup></dt>
+              <dd id="prepaid"></dd>
+            </div>
+            <div>
+              <dt>Discounted strike K e<sup>-rT</sup></dt>
+              <dd id="bond"></dd>
+            </div>
+            <div>
+              <dt>Numerical residual</dt>
+              <dd id="residual"></dd>
+            </div>
+          </dl>
+          <p class="micro">
+            One side is computed from the other using parity to reduce
+            cancellation. A small residual is an arithmetic check,
+            <em>not</em> independent validation. Tests separately compare prices
+            with an erfc reference.
+          </p>
+          <details>
+            <summary>Inside the calculation</summary>
+            <dl>
+              <div>
+                <dt>T = days / 365</dt>
+                <dd id="time"></dd>
+              </div>
+              <div>
+                <dt>d₁</dt>
+                <dd id="d1"></dd>
+              </div>
+              <div>
+                <dt>d₂</dt>
+                <dd id="d2"></dd>
+              </div>
+            </dl>
+            <p class="micro">
+              d₁ and d₂ are standardized model terms, not price forecasts.
+              Normal probabilities are evaluated numerically.
+            </p>
+          </details>
+        </article>
+      </section>
+      <section class="worksheet shocks">
+        <div class="section-head">
+          <div>
+            <p class="kicker">05 / DERIVATIVE VS REPRICING</p>
+            <h2>A one-point volatility change is finite.</h2>
+          </div>
+          <span class="badge">SAME CONTRACT · σ + 1 PP</span>
+        </div>
+        <p id="shock-note">
+          Compare vega's local estimate with a full repricing. They need not
+          agree exactly.
+        </p>
+        <div
+          class="table-wrap"
+          tabindex="0"
+          role="region"
+          aria-label="Volatility change comparison"
+        >
+          <table>
+            <thead>
+              <tr>
+                <th>Right</th>
+                <th>Vega estimate</th>
+                <th>Repriced change</th>
+                <th>Difference</th>
+              </tr>
+            </thead>
+            <tbody id="shock-rows"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="footnotes">
+        <article>
+          <p class="kicker">MODEL BOUNDARY</p>
+          <h2>Useful structure.<br />Limited world.</h2>
+          <p>
+            Constant parameters, lognormal underlying dynamics, frictionless
+            trading and continuous rebalancing. No jumps, stochastic volatility,
+            funding spreads, fees, discrete dividends or early exercise. Actual
+            market premiums are set by buyers and sellers.
+          </p>
+          <p>
+            All inputs are hypothetical. No security, broker or exchange is
+            connected. No calibration, portfolio hedge, recommendation or
+            forecast is produced. The price of an option can be lost in full.
+          </p>
+        </article>
+        <article>
+          <p class="kicker">NUMERICAL &amp; PRIVACY NOTES</p>
+          <h2>Local and explicit.</h2>
+          <p>
+            Seven days and 5% volatility are lower model limits; zero-time and
+            zero-volatility singular Greeks are deliberately excluded. Year
+            fraction is days/365, with no exchange calendar or day-count
+            inference. Values below numerical or display precision may round to
+            zero.
+          </p>
+          <p>
+            Inputs stay in page memory. No storage, telemetry, requests or
+            exports. Reset restores the illustrative defaults. Original
+            implementation and charts, no external runtime assets.
+          </p>
+          <nav aria-label="Method references">
+            <a
+              href="https://www.glynholton.com/notes/merton_1973/"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Merton formulas ↗</a
+            ><a
+              href="https://www.optionseducation.org/advancedconcepts/black-scholes-formula"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Model limits ↗</a
+            ><a
+              href="https://www.macroption.com/black-scholes-formula/"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Greek units ↗</a
+            >
+          </nav>
+        </article>
+      </section>
+      <footer>
+        <span>carryline / EUROPEAN BSM WORKSHEET</span
+        ><span
+          >Original code · MIT OR Apache-2.0 · Java core + local browser</span
+        >
+      </footer>
+    </main>
+  </body>
+</html>
